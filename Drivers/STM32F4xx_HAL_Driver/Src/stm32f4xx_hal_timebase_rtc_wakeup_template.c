@@ -22,7 +22,7 @@
        HAL_RTC_MODULE_ENABLED define in stm32f4xx_hal_conf.h 
 
     [..]
-    (@) HAL RTC alarm and HAL RTC wakeup drivers can’t be used with low power modes:
+    (@) HAL RTC alarm and HAL RTC wakeup drivers can't be used with low power modes:
         The wake up capability of the RTC may be intrusive in case of prior low power mode
         configuration requiring different wake up sources.
         Application/Example behavior is no more guaranteed 
@@ -85,6 +85,12 @@ RTC_HandleTypeDef        hRTC_Handle;
 void RTC_WKUP_IRQHandler(void);
 
 /* Private functions ---------------------------------------------------------*/
+
+#if defined(UBINOS_PRESENT)
+
+	#error "Not yet supported"
+
+#else /* defined(UBINOS_PRESENT) */
 
 /**
   * @brief  This function configures the RTC_WKUP as a time base source. 
@@ -211,6 +217,8 @@ HAL_StatusTypeDef HAL_InitTick (uint32_t TickPriority)
   }
   return HAL_ERROR;
 }
+
+#endif /* defined(UBINOS_PRESENT) */
 
 /**
   * @brief  Suspend Tick increment.

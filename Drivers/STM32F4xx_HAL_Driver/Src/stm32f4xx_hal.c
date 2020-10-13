@@ -35,6 +35,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 
+#if defined(UBINOS_PRESENT)
+#include <ubinos.h>
+#endif /* defined(UBINOS_PRESENT) */
+
+
 /** @addtogroup STM32F4xx_HAL_Driver
   * @{
   */
@@ -156,6 +161,8 @@ HAL_TickFreqTypeDef uwTickFreq = HAL_TICK_FREQ_DEFAULT;  /* 1KHz */
   */
 HAL_StatusTypeDef HAL_Init(void)
 {
+#if defined(UBINOS_BSP_PRESENT)
+#else
   /* Configure Flash prefetch, Instruction cache, Data cache */ 
 #if (INSTRUCTION_CACHE_ENABLE != 0U)
   __HAL_FLASH_INSTRUCTION_CACHE_ENABLE();
@@ -168,12 +175,16 @@ HAL_StatusTypeDef HAL_Init(void)
 #if (PREFETCH_ENABLE != 0U)
   __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
 #endif /* PREFETCH_ENABLE */
+#endif /* defined(UBINOS_BSP_PRESENT) */
 
+#if defined(UBINOS_PRESENT)
+#else
   /* Set Interrupt Group Priority */
   HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
   /* Use systick as time base source and configure 1ms tick (default clock after Reset is HSI) */
   HAL_InitTick(TICK_INT_PRIORITY);
+#endif /* defined(UBINOS_PRESENT) */
 
   /* Init the low level hardware */
   HAL_MspInit();
@@ -233,6 +244,35 @@ __weak void HAL_MspDeInit(void)
             the HAL_MspDeInit could be implemented in the user file
    */ 
 }
+
+#if defined(UBINOS_PRESENT)
+
+__weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
+{
+	return HAL_OK;
+}
+
+/**
+  * @brief Provides a tick value in millisecond.
+  * @note This function is declared as __weak to be overwritten in case of other
+  *       implementations in user file.
+  * @retval tick value
+  */
+__weak uint32_t HAL_GetTick(void)
+{
+  return ubik_gettickcount().low;
+}
+
+/**
+  * @brief Return tick frequency.
+  * @retval tick period in Hz
+  */
+HAL_TickFreqTypeDef HAL_GetTickFreq(void)
+{
+  return max(1, 1000 / ubik_gettickpersec());
+}
+
+#else /* defined(UBINOS_PRESENT) */
 
 /**
   * @brief This function configures the source of the time base.
@@ -375,6 +415,8 @@ HAL_TickFreqTypeDef HAL_GetTickFreq(void)
   return uwTickFreq;
 }
 
+#endif /* defined(UBINOS_PRESENT) */
+
 /**
   * @brief This function provides minimum delay (in milliseconds) based 
   *        on variable incremented.
@@ -394,7 +436,7 @@ __weak void HAL_Delay(uint32_t Delay)
   /* Add a freq to guarantee minimum wait */
   if (wait < HAL_MAX_DELAY)
   {
-    wait += (uint32_t)(uwTickFreq);
+    wait += (uint32_t)(HAL_GetTickFreq());
   }
 
   while((HAL_GetTick() - tickstart) < wait)
